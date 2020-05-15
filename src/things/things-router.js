@@ -1,6 +1,6 @@
 const express = require('express')
 const ThingsService = require('./things-service')
-const { basicAuth } = require("./../basic-auth")
+const { jwtAuth } = require("./../auth/jwt-auth")
 const thingsRouter = express.Router()
 
 //remains public
@@ -14,16 +14,8 @@ thingsRouter
       .catch(next)
   })
 
-thingsRouter
-  .route('/:thing_id')
-  .all(basicAuth)
-  .all(checkThingExists)
-  .get((req, res) => {
-    res.json(ThingsService.serializeThing(res.thing))
-  })
-
 thingsRouter.route('/:thing_id/reviews/')
-  .all(basicAuth)
+  .all(jwtAuth)
   .all(checkThingExists)
   .get((req, res, next) => {
     ThingsService.getReviewsForThing(
@@ -35,6 +27,19 @@ thingsRouter.route('/:thing_id/reviews/')
       })
       .catch(next)
   })
+
+thingsRouter
+  .route('/:thing_id')
+  .all(jwtAuth)
+  .all(checkThingExists)
+  .get((req, res) => {
+    ThingsService.getById(req.app.get('db'), req.params.thing_id)
+      .then(thing => {
+        res.json(ThingsService.serializeThing(thing))
+      });
+  })
+
+
 
 /* async/await syntax for promises */
 async function checkThingExists(req, res, next) {
